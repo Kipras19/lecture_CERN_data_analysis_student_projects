@@ -41,7 +41,7 @@ def browse_and_choose_csv():
         # Commands info
         print("\nCommands:")
         print("  <number>  -> open folder / select CSV")
-        print("  back      -> go to parent folder")
+        print("  back      -> go back")
         print("  quit      -> exit without selecting a file")
 
         choice = input("\nYour choice: ").strip().lower()
@@ -79,6 +79,11 @@ def choose_csv_actions():
 
     actions = [
         "Remove empty rows and columns",
+        "Strip whitespace",
+        "Normalize missing values",
+        "Fix decimal commas",
+        "Extract numeric value + units",
+        "Convert units to SI",
     ]
 
     while True:
@@ -125,10 +130,7 @@ def choose_csv_actions():
             print("\nOkay, let's choose again.")
 
 def choose_output_path() -> str:
-    """
-    Lets user type output file path relative to ROOT_DIR (the project folder).
-    Creates missing folders automatically.
-    """
+   
     print("\n==============================")
     print("Saving cleaned CSV")
     print("==============================")
@@ -190,11 +192,26 @@ def main():
         if action == "Remove empty rows and columns":
             from csv_actions import remove_empty_rows_and_columns
             file = remove_empty_rows_and_columns(file)
+        if action == "Strip whitespace":
+            from csv_actions import strip_whitespace
+            file = strip_whitespace(file)
+        if action == "Normalize missing values":
+            from csv_actions import normalize_missing_values
+            file = normalize_missing_values(file)
+        if action == "Fix decimal commas":
+            from csv_actions import fix_decimal_commas
+            file = fix_decimal_commas(file)
+        if action == "Extract numeric value + units":
+            from csv_actions import extract_numeric_and_unit
+            file = extract_numeric_and_unit(file)
+        if action == "Convert units to SI":
+            from csv_actions import convert_units_to_SI
+            file = convert_units_to_SI(file)
 
         # Add more actions here like:
         # if action == "Strip whitespace":
         #     from actions import strip_whitespace
-        #     df = strip_whitespace(df)
+        #     file = strip_whitespace(df)
     # ----------------------------
 
     output_path = choose_output_path()
