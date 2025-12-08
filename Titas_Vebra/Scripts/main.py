@@ -333,33 +333,46 @@ def main():
         print("No actions selected.")
         return
 
-    # Ask if the user wants a cleaning log
-    while True:
-        ans = input(
-            "\nGenerate cleaning log (.txt) next to cleaned CSV? (y/n): "
-        ).strip().lower()
-        if ans in ("y", "yes"):
-            log_enabled = True
-            break
-        elif ans in ("n", "no"):
-            log_enabled = False
-            break
-        else:
-            print("Please type y or n.")
+    # ---------------------------------
+    # Decide if any chosen actions modify the CSV
+    # ---------------------------------
+    mutating_actions = [
+        a for a in chosen_actions
+        if a not in ("Plot data", "Generate LaTeX table")
+    ]
 
-    log_entries = []
-    if log_enabled:
-        log_entries.append(f"Source file: {csv_path}")
-        log_entries.append(
-            f"Initial shape: {file.shape[0]} rows x {file.shape[1]} columns"
-        )
-        log_entries.append("")
+    if mutating_actions:
+        # Ask if the user wants a cleaning log (ONLY if something can change the CSV)
+        while True:
+            ans = input(
+                "\nGenerate cleaning log (.txt) next to cleaned CSV? (y/n): "
+            ).strip().lower()
+            if ans in ("y", "yes"):
+                log_enabled = True
+                break
+            elif ans in ("n", "no"):
+                log_enabled = False
+                break
+            else:
+                print("Please type y or n.")
+
+        log_entries = []
+        if log_enabled:
+            log_entries.append(f"Source file: {csv_path}")
+            log_entries.append(
+                f"Initial shape: {file.shape[0]} rows x {file.shape[1]} columns"
+            )
+            log_entries.append("")
+    else:
+        # ONLY Plot data / Generate LaTeX chosen → no cleaning log at all
+        log_enabled = False
+        log_entries = []
+    # ---------------------------------
 
     # ----------------------------
     # Importing actions
     # ----------------------------
     for action in chosen_actions:
-        # copy state before action for logging
         before_df = file.copy(deep=True)
 
         if action == "Remove rows and columns":

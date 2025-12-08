@@ -522,58 +522,58 @@ def _print_rows_preview(df: pd.DataFrame, max_rows: int = 20) -> None:
         print(df_show.tail(max_rows - half))
 
 def _choose_column(columns, prompt):
-    print(prompt)
-    for i, col in enumerate(columns):
-        print(f"[{i}] {col}")
-    choice = input("Enter column number (or 'q' to cancel): ").strip()
+    while True:
+        print(prompt)
+        for i, col in enumerate(columns, start=1):
+            print(f"[{i}] {col}")
 
-    if choice.lower() == "q":
-        return None
+        choice = input("Enter column number (or 'q' to cancel): ").strip().lower()
 
-    try:
-        idx = int(choice)
-        if 0 <= idx < len(columns):
-            return columns[idx]
-    except ValueError:
-        pass
+        if choice == "q":
+            return None
 
-    print("Invalid choice.")
-    return None
+        if choice.isdigit():
+            idx = int(choice)
+            if 1 <= idx <= len(columns):
+                return columns[idx - 1]
+
+        print("Invalid choice. Please enter a valid number or 'q'.\n")
 
 def _choose_multiple_columns(columns, prompt):
-    print(prompt)
-    for i, col in enumerate(columns):
-        print(f"[{i}] {col}")
-    choice = input(
-        "Enter column number(s) separated by commas or spaces (or 'q' to cancel): "
-    ).strip()
+    while True:
+        print(prompt)
+        for i, col in enumerate(columns, start=1):
+            print(f"[{i}] {col}")
 
-    if choice.lower() == "q":
-        return None
+        choice = input(
+            "Enter column number(s) separated by commas/spaces (or 'q' to cancel): "
+        ).strip().lower()
 
-    # split on commas OR whitespace
-    tokens = re.split(r"[,\s]+", choice.strip())
-    tokens = [t for t in tokens if t]  # remove empty strings
+        if choice == "q":
+            return None
 
-    idxs = []
-    for t in tokens:
-        try:
-            idxs.append(int(t))
-        except ValueError:
-            print(f"Ignoring invalid token: {t!r}")
+        tokens = re.split(r"[,\s]+", choice)
+        tokens = [t for t in tokens if t]
 
-    result = []
-    for idx in idxs:
-        if 0 <= idx < len(columns):
-            result.append(columns[idx])
+        selected = []
+
+        valid = True
+        for t in tokens:
+            if t.isdigit():
+                idx = int(t)
+                if 1 <= idx <= len(columns):
+                    selected.append(columns[idx - 1])
+                else:
+                    print(f"Invalid index: {t}")
+                    valid = False
+            else:
+                print(f"Ignoring invalid token: {t!r}")
+                valid = False
+
+        if selected and valid:
+            return selected
         else:
-            print(f"Ignoring invalid index: {idx}")
-
-    if not result:
-        print("No valid columns selected.")
-        return None
-
-    return result
+            print("\nPlease enter only valid column numbers.\n")
 
 def _style_axes(ax, x_label, y_label, title):
     ax.set_xlabel(x_label)
@@ -592,6 +592,7 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
       - choose X
       - choose one or more Y
       - choose plot type
+      - choose axis scales, grid, labels, title
       - save PNG to Plots/  (CSV not touched)
     """
     if df.empty:
@@ -614,11 +615,16 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
     if not y_cols:
         return df
 
-    print("\nChoose plot type:")
-    print("[1] Line (y vs x)")
-    print("[2] Scatter (y vs x)")
-    print("[3] Bar (y vs x)")
-    plot_choice = input("Enter number: ").strip()
+    # ----- plot type (forced 1/2/3) -----
+    while True:
+        print("\nChoose plot type:")
+        print("[1] Line (y vs x)")
+        print("[2] Scatter (y vs x)")
+        print("[3] Bar (y vs x)")
+        plot_choice = input("Enter number (1/2/3): ").strip()
+        if plot_choice in ("1", "2", "3"):
+            break
+        print("Please enter 1, 2 or 3.")
 
     x_raw = df[x_col]
     x_num = pd.to_numeric(x_raw, errors="coerce")
@@ -690,37 +696,46 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
         _style_axes(ax, x_col, y_col, title)
         plt.xticks(rotation=45)
 
-    else:
-        print("Unknown plot type.")
-        plt.close(fig)
-        return df
-    
-    # ----- axis scales: linear / log -----
+    # ===== axis scales: linear / log =====
     print("\nAxis scale options:")
-    print("X-axis: [1] linear  [2] log")
-    x_choice = input("Choose X-axis scale [1]: ").strip()
+
+    # X scale (force 1/2, default 1 on empty)
+    while True:
+        print("X-axis: [1] linear  [2] log")
+        x_choice = input("Choose X-axis scale [1]: ").strip()
+        if x_choice in ("", "1", "2"):
+            break
+        print("Please type 1 for linear or 2 for log.")
+
     if x_choice == "2":
         ax.set_xscale("log")
     else:
         ax.set_xscale("linear")
 
-    print("Y-axis: [1] linear  [2] log")
-    y_choice = input("Choose Y-axis scale [1]: ").strip()
+    # Y scale (force 1/2, default 1 on empty)
+    while True:
+        print("Y-axis: [1] linear  [2] log")
+        y_choice = input("Choose Y-axis scale [1]: ").strip()
+        if y_choice in ("", "1", "2"):
+            break
+        print("Please type 1 for linear or 2 for log.")
+
     if y_choice == "2":
         ax.set_yscale("log")
     else:
         ax.set_yscale("linear")
 
-        # ----- grid toggle -----
-    print("\nGrid options:")
-    print("[1] Grid ON")
-    print("[2] Grid OFF")
-    grid_choice = input("Enable grid? [1]: ").strip()
+    # ----- grid toggle (force 1/2, default 1) -----
+    while True:
+        print("\nGrid options:")
+        print("[1] Grid ON")
+        print("[2] Grid OFF")
+        grid_choice = input("Enable grid? [1]: ").strip()
+        if grid_choice in ("", "1", "2"):
+            break
+        print("Please type 1 for ON or 2 for OFF.")
 
-    if grid_choice == "2":
-        ax.grid(False)
-    else:
-        ax.grid(True)
+    ax.grid(grid_choice != "2")
 
     plt.tight_layout()
 
@@ -740,18 +755,33 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
         y_label = default_y_label
     ax.set_ylabel(y_label)
 
-    # Legend toggle
+    # Legend toggle (force y/n with defaults)
     if len(y_cols) > 1:
-        add_legend = input("Add legend? (y/n) [y]: ").strip().lower()
+        # default: yes
+        while True:
+            add_legend = input("Add legend? (y/n) [y]: ").strip().lower()
+            if add_legend in ("", "y", "yes", "n", "no"):
+                break
+            print("Please type y or n.")
         if add_legend in ("", "y", "yes"):
             ax.legend()
     else:
-        add_legend = input("Add legend? (y/n) [n]: ").strip().lower()
+        # default: no
+        while True:
+            add_legend = input("Add legend? (y/n) [n]: ").strip().lower()
+            if add_legend in ("", "y", "yes", "n", "no"):
+                break
+            print("Please type y or n.")
         if add_legend in ("y", "yes"):
             ax.legend()
 
-    # Title toggle + custom title
-    enable_title = input("Add title? (y/n) [y]: ").strip().lower()
+    # Title toggle + custom title (force y/n with default yes)
+    while True:
+        enable_title = input("Add title? (y/n) [y]: ").strip().lower()
+        if enable_title in ("", "y", "yes", "n", "no"):
+            break
+        print("Please type y or n.")
+
     if enable_title in ("", "y", "yes"):
         default_title = ax.get_title() or ""
         custom_title = input(f"Title [{default_title}]: ").strip()
@@ -762,7 +792,6 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
         ax.set_title("")  # clear title
 
     # ===== ASK USER WHERE TO SAVE PNG (relative to project folder) =====
-    # project folder = one level above Scripts (where this file lives)
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     base = os.path.splitext(os.path.basename(file_path))[0]
@@ -772,8 +801,8 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
     print("\n==============================")
     print("Saving plot PNG")
     print("==============================")
-    print("Project directory:", project_root)
-    print("\nEnter output PNG path relative to the Project folder.")
+    print("Working directory:", project_root)
+    print("\nEnter output PNG path relative to the Working folder.")
     print("Examples:")
     print(f"   {default_name}")
     print(f"   Plots/{default_name}")
@@ -782,7 +811,6 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
     while True:
         out = input(f"Output PNG path [{default_name}]: ").strip()
 
-        # allow empty -> use default name in project root
         if not out:
             out = default_name
 
@@ -791,8 +819,6 @@ def plot_data(df: pd.DataFrame, file_path: str) -> pd.DataFrame:
             continue
 
         png_path = os.path.join(project_root, out)
-
-        # Create folder(s) if needed
         os.makedirs(os.path.dirname(png_path), exist_ok=True)
         break
 
